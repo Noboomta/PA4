@@ -11,51 +11,57 @@ import java.net.URLConnection;
 public class DownloadTask extends Task {
     private URL url;
     private File outfile;
+    private long start;
+    private long size;
 
-    public DownloadTask(URL url, File outfile){
+    public DownloadTask(URL url, File outfile, long start, long size){
         this.url = url;
         this.outfile = outfile;
+        this.start = start;
+        this.size = size;
     }
 
     @Override
-    public Long call() throws Exception {
-        long bytesRead = 0;
+    public Long call()  {
+        URLConnection conn = null;
+        String range = null;
         final int BUFFERSIZE = 16*1024;
-        long fileSize = fileSize(url);
-        URLConnection conn = url.openConnection();
-        InputStream in = conn.getInputStream( );
-        OutputStream out = new FileOutputStream(outfile);
         byte[] buffer = new byte[BUFFERSIZE];
+        long bytesRead = 0;
         try {
-            do {
-                int n = in.read( buffer );
-                if (n < 0) break; // n < 0 means end of the input
+            conn = url.openConnection();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        if ( size > 0 ) {
+            range = String.format("bytes=%d-%d", start, start+size-1);
+        }
+        else {
+            // size not given, so read from start byte to end of file
+            range = String.format("bytes=%d-", start);
+        }
+        conn.setRequestProperty("Range", range);
+        try(InputStream in = conn.getInputStream( );
+            RandomAccessFile out = new RandomAccessFile( outfile, "rwd" );) {
+            int n =0;
+            out.seek(start);
+            while ((n=in.read(buffer)) >= 0 ){// n < 0 means end of the input
                 out.write(buffer, 0, n); // write n bytes from buffer
                 bytesRead += n;
-                updateProgress(bytesRead, fileSize);
-            } while ( true );
-        }
-        catch( IOException ex ) {
-            // handle it
-        }
-        finally {
-            //TODO add try-catch to each close()
-            in.close();
-            out.close();
+                updateProgress(bytesRead, size);
+            }
+
+
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            System.out.println(start+"  "+ size);
         }
         return null;
     }
 
-    public long fileSize(URL url){
-        long length = 0;
-        try {
-            URLConnection connection = url.openConnection( );
-            length = connection.getContentLengthLong( );
-        } catch (MalformedURLException ex) {
-            // URL constructor may throw this
-        } catch (IOException ioe) {
-            // getContentLengthLong may throw IOException
-        }
-        return length;
-    }
 }
