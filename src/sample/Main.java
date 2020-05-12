@@ -7,17 +7,13 @@ import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
-import javafx.scene.control.TextField;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.VBox;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
@@ -36,7 +32,7 @@ public class Main extends Application {
     public void start(Stage primaryStage) throws Exception {
         Parent root = initComponent();
         primaryStage.setTitle("Hello World");
-        primaryStage.setScene(new Scene(root, 300, 275));
+        primaryStage.setScene(new Scene(root));
         primaryStage.show();
     }
 
@@ -46,41 +42,62 @@ public class Main extends Application {
 
     public Pane initComponent(){
         FlowPane myPane = new FlowPane();
+        myPane.setPadding(new Insets(20));
         myPane.setVgap(10);
-        VBox vBox = new VBox();
-        vBox.setSpacing(10);
-        HBox hBox1 = new HBox();
-        hBox1.setSpacing(10);
-        HBox hBox2 = new HBox();
-        hBox2.setSpacing(10);
-        hBox3 = new HBox();
-        hBox3.setSpacing(10);
-        Button downloadButton = new Button("Download");
-        Button clearButton = new Button("Clear");
+
         Label allProgressLabel = new Label("All Progress");
         Label ThreadProgressLabel = new Label("Thread Progress");
+        Label urlToDownload = new Label("URL to Download");
+        Label onBarNumber = new Label("");
+
+        VBox vBox = new VBox();
+        vBox.setSpacing(10);
+
+        HBox hBox1 = new HBox();
+        hBox1.setSpacing(10);
+        hBox1.setAlignment(Pos.CENTER);
+
+        HBox hBox2 = new HBox();
+        hBox2.setSpacing(10);
+        hBox2.setAlignment(Pos.CENTER);
+
+        hBox3 = new HBox();
+        hBox3.setSpacing(10);
+        hBox3.setAlignment(Pos.CENTER);
+
+        Button downloadButton = new Button("Download");
+        Button clearButton = new Button("Clear");
+
         bar = new ProgressBar();
+        bar.setMinWidth(300);
+
         TextField urlField = new TextField();
-        hBox1.getChildren().addAll(urlField, downloadButton, clearButton);
-        hBox2.getChildren().addAll(allProgressLabel, bar);
+        hBox1.getChildren().addAll(urlToDownload, urlField, downloadButton, clearButton);
+
+        StackPane stackPane = new StackPane(bar, onBarNumber);
+        hBox2.getChildren().addAll(allProgressLabel, stackPane);
+
         hBox3.getChildren().addAll(ThreadProgressLabel);
         List<ProgressBar> barList = new ArrayList<>();
         AllTask allTask = new AllTask();
-
+        //https://norvig.com/big.txt
 
         downloadButton.setOnAction(new EventHandler<ActionEvent>() {
+            private long length;
+
             @Override
             public void handle(ActionEvent actionEvent) {
                 FileChooser fileChooser = new FileChooser();
                 File saveFile = fileChooser.showSaveDialog(new Stage());
                 if(saveFile!=null){
-                    long length = 0;
+                    allProgressLabel.setText(saveFile.getName());
+                    length = 0;
                     long lenEach = 0;
                     long start = 0;
                     try {
-                        length = fileSize(new URL(urlField.getText()));
+                        this.length = fileSize(new URL(urlField.getText()));
                     } catch (MalformedURLException e) {
-                        e.printStackTrace();
+                        popUP("No File");
                     }
                     if(length!=0){
                         lenEach = (length/5)+10;
@@ -96,20 +113,21 @@ public class Main extends Application {
                             start+=lenEach;
                             allTask.addTask(task);
                         } catch (MalformedURLException e) {
-                            System.out.println("errrrrr in loop main");
+                            popUP("url incorrect!");
+                            break;
                         }
                         task.progressProperty().addListener(new ChangeListener<Number>() {
                             @Override
                             public void changed(ObservableValue<? extends Number> observableValue, Number number, Number t1) {
                                 bar.setProgress(allTask.getAllProgress());
-
+                                onBarNumber.setText(String.format("%,d/%,d", (long)(allTask.getAllProgress()*length), length));
                             }
                         });
                         ProgressBar eachBar = new ProgressBar();
+                        eachBar.setMaxWidth(50);
                         eachBar.progressProperty().bind(task.progressProperty());
                         barList.add(eachBar);
                         hBox3.getChildren().add(eachBar);
-
                         Thread thread = new Thread(task);
                         thread.start();
                     }
@@ -139,12 +157,19 @@ public class Main extends Application {
             URLConnection connection = url.openConnection( );
             length = connection.getContentLengthLong( );
         } catch (MalformedURLException ex) {
-            // URL constructor may throw this
+            popUP("url incorrect!");
         } catch (IOException ioe) {
-            // getContentLengthLong may throw IOException
+            popUP("url incorrect!");
         }
         return length;
     }
 
+    public void popUP(String err){
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Alert Dialog!!");
+        alert.setHeaderText("Something Error");
+        alert.setContentText(err);
+        alert.showAndWait();
+    }
 
 }
