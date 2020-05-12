@@ -24,6 +24,9 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Main Class extends the Application.
+ */
 public class Main extends Application {
     HBox hBox3;
     ProgressBar bar;
@@ -40,7 +43,11 @@ public class Main extends Application {
         launch(args);
     }
 
-    public Pane initComponent(){
+    /**
+     * initComponent method to return Pane.
+     * @return Pane
+     */
+    public Pane initComponent() {
         FlowPane myPane = new FlowPane();
         myPane.setPadding(new Insets(20));
         myPane.setVgap(10);
@@ -80,7 +87,6 @@ public class Main extends Application {
         hBox3.getChildren().addAll(ThreadProgressLabel);
         List<ProgressBar> barList = new ArrayList<>();
         AllTask allTask = new AllTask();
-        //https://norvig.com/big.txt
 
         downloadButton.setOnAction(new EventHandler<ActionEvent>() {
             private long length;
@@ -89,7 +95,7 @@ public class Main extends Application {
             public void handle(ActionEvent actionEvent) {
                 FileChooser fileChooser = new FileChooser();
                 File saveFile = fileChooser.showSaveDialog(new Stage());
-                if(saveFile!=null){
+                if (saveFile != null) {
                     allProgressLabel.setText(saveFile.getName());
                     length = 0;
                     long lenEach = 0;
@@ -99,28 +105,29 @@ public class Main extends Application {
                     } catch (MalformedURLException e) {
                         popUP("No File");
                     }
-                    if(length!=0){
-                        lenEach = (length/5)+10;
+                    if (length != 0) {
+                        lenEach = (length / 5) + 10;
                     }
-                    for(int i=0;i<5;i++){
+                    for (int i = 0; i < 5; i++) {
                         Task task = null;
-                        if(i==4){
-                            start-=lenEach;
-                            lenEach = length-start;
+                        if (i == 4) {
+                            start -= lenEach;
+                            lenEach = length - start;
                         }
                         try {
                             task = new DownloadTask(new URL(urlField.getText()), saveFile, start, lenEach);
-                            start+=lenEach;
+                            start += lenEach;
                             allTask.addTask(task);
                         } catch (MalformedURLException e) {
                             popUP("url incorrect!");
                             break;
                         }
                         task.progressProperty().addListener(new ChangeListener<Number>() {
+                            // class to set the progresses.
                             @Override
                             public void changed(ObservableValue<? extends Number> observableValue, Number number, Number t1) {
                                 bar.setProgress(allTask.getAllProgress());
-                                onBarNumber.setText(String.format("%,d/%,d", (long)(allTask.getAllProgress()*length), length));
+                                onBarNumber.setText(String.format("%,d/%,d", (long) (allTask.getAllProgress() * length), length));
                             }
                         });
                         ProgressBar eachBar = new ProgressBar();
@@ -137,6 +144,7 @@ public class Main extends Application {
         });
 
         clearButton.setOnAction(new EventHandler<ActionEvent>() {
+            //handle class of clear button
             @Override
             public void handle(ActionEvent actionEvent) {
                 System.out.println(barList);
@@ -151,11 +159,16 @@ public class Main extends Application {
         return myPane;
     }
 
-    public long fileSize(URL url){
+    /**
+     * Method to get the File size.
+     * @param url
+     * @return long of length
+     */
+    public long fileSize(URL url) {
         long length = 0;
         try {
-            URLConnection connection = url.openConnection( );
-            length = connection.getContentLengthLong( );
+            URLConnection connection = url.openConnection();
+            length = connection.getContentLengthLong();
         } catch (MalformedURLException ex) {
             popUP("url incorrect!");
         } catch (IOException ioe) {
@@ -164,7 +177,11 @@ public class Main extends Application {
         return length;
     }
 
-    public void popUP(String err){
+    /**
+     * Popup method to alert the error.
+     * @param err String to popup.
+     */
+    public void popUP(String err) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Alert Dialog!!");
         alert.setHeaderText("Something Error");
